@@ -38,8 +38,9 @@ If you encounter any difficulties while using Cloud-Barista, please let us know.
 4. [VM Accounts](#4-vm-accounts)  
 5. [Usage](#5-usage)  
 6. [API Specifications](#6-api-specifications)  
-7. [Notes](#7-notes)  
-8. [References](#8-references)  
+7. [GitHub Copilot (Cloud Agent)](#7-github-copilot-cloud-agent)  
+8. [Notes](#8-notes)  
+9. [References](#9-references)  
 
 ***
 
@@ -111,10 +112,16 @@ If you encounter any difficulties while using Cloud-Barista, please let us know.
 
 ---
 
-#### 7. Notes
+#### 7. GitHub Copilot (Cloud Agent)
+- 💡 [What Can GitHub Copilot Do for CB-Spider?](.github/CLOUD_AGENT_CAPABILITIES.md)  
+- Learn how AI-powered coding assistance can help with driver development, REST APIs, testing, and more
+
+---
+
+#### 8. Notes
 - Development status: Focused on core features / For R&D use / Needs reinforcement for production use  
 
 ---
 
-#### 8. References
+#### 9. References
 - Wiki: https://github.com/cloud-barista/cb-spider/wiki  
