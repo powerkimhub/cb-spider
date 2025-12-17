@@ -13,10 +13,11 @@
             --menu-bg: #ffffff;
             --link-color: #0645AD;
             --selected-config-color: #08aab0;
-            --dropdown-bg: #000;
-            --dropdown-text: #fff;
-            --dropdown-hover-bg: #555;
-            --dropdown-divider: #444;
+            --dropdown-bg: #ffffff;
+            --dropdown-text: #000000;
+            --dropdown-hover-bg: #f0f0f0;
+            --dropdown-divider: #ccc;
+            --dropdown-shadow: rgba(0, 0, 0, 0.2);
             --progress-bg: #e2e0e0;
             --progress-border: #bdbdbd;
             --progress-inner: #cdcaca;
@@ -37,6 +38,7 @@
             --dropdown-text: #e0e0e0;
             --dropdown-hover-bg: #444;
             --dropdown-divider: #555;
+            --dropdown-shadow: rgba(0, 0, 0, 0.6);
             --progress-bg: #333;
             --progress-border: #555;
             --progress-inner: #666;
@@ -108,13 +110,14 @@
             color: var(--dropdown-text);
             font-size: 14px;
             min-width: 150px;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.4);
+            box-shadow: 0px 8px 16px 0px var(--dropdown-shadow);
             z-index: 1000;
             top: 100%;
             left: -2cm;
             padding: 10px;
             border-radius: 8px;
-            transition: background-color 0.3s ease, color 0.3s ease;
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
         .dropdown-content a {
             color: var(--dropdown-text);
@@ -410,7 +413,7 @@
     // Dark mode toggle functionality
     function toggleTheme() {
         const html = document.documentElement;
-        const currentTheme = html.getAttribute('data-theme');
+        const currentTheme = html.getAttribute('data-theme') || 'light';
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         
         html.setAttribute('data-theme', newTheme);
