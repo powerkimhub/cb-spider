@@ -278,9 +278,14 @@
             align-items: center;
             gap: 5px;
             transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+            font-family: inherit;
         }
         .theme-toggle:hover {
             opacity: 0.8;
+        }
+        .theme-toggle:focus {
+            outline: 2px solid var(--link-color);
+            outline-offset: 2px;
         }
         .theme-toggle-icon {
             font-size: 16px;
@@ -438,7 +443,11 @@
     }
 
     // Initialize theme when page loads
-    window.addEventListener('DOMContentLoaded', initializeTheme);
+    if (document.readyState === 'loading') {
+        window.addEventListener('DOMContentLoaded', initializeTheme);
+    } else {
+        initializeTheme();
+    }
 </script>
 </head>
 <body>
@@ -458,9 +467,9 @@
                 <div class="top-menu-right">
                     <div class="dynamic-menu"></div>
                     <div class="separator"></div>
-                    <div class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">
-                        <span class="theme-toggle-icon" id="theme-icon">🌙</span>
-                    </div>
+                    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                        <span class="theme-toggle-icon" id="theme-icon" aria-hidden="true">🌙</span>
+                    </button>
                     <div class="separator"></div>
                     <div class="dropdown">
                         <span>help</span>
