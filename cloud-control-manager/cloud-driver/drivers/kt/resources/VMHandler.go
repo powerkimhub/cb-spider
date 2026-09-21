@@ -1397,16 +1397,14 @@ func (vmHandler *KTVpcVMHandler) mappingVMInfo(vm servers.Server) (irs.VMInfo, e
 	var diskIIDs []irs.IID
 	var imageIID irs.IID
 	var getErr error
-	if len(vm.AttachedVolumes) > 0 {
+	if len(vm.AttachedVolumes) > 0 && vmHandler.VolumeClient != nil {
 		for _, volume := range vm.AttachedVolumes {
 			cblogger.Infof("# Volume ID : %s", volume.ID)
 
-			// ktVolume, _ := volumes3.Get(vmHandler.VolumeClient, volume.ID).Extract()
 			ktVolume, err := volumes2.Get(vmHandler.VolumeClient, volume.ID).Extract()
 			if err != nil {
-				newErr := fmt.Errorf("Failed to Get the KT Disk Info!! : [%v] ", err)
-				cblogger.Error(newErr.Error())
-				return irs.VMInfo{}, newErr
+				cblogger.Warnf("Failed to Get the KT Disk Info!! : [%v] ", err)
+				continue
 			}
 
 			if ktVolume.Bootable == "true" {
@@ -1442,16 +1440,20 @@ func (vmHandler *KTVpcVMHandler) mappingVMInfo(vm servers.Server) (irs.VMInfo, e
 		vmInfo.ImageIId.NameId = imageIID.NameId
 		vmInfo.ImageIId.SystemId = imageIID.SystemId
 
-		isPublicImage, err := imageHandler.isPublicImage(irs.IID{SystemId: imageIID.SystemId})
-		if err != nil {
-			newErr := fmt.Errorf("Failed to Check Whether the Image is Public Image : [%v]", err)
-			cblogger.Error(newErr.Error())
-			// return irs.VMInfo{}, newErr // Caution!!
-		}
-		if isPublicImage {
-			vmInfo.ImageType = irs.PublicImage
+		if vmHandler.ImageClient != nil {
+			isPublicImage, err := imageHandler.isPublicImage(irs.IID{SystemId: imageIID.SystemId})
+			if err != nil {
+				newErr := fmt.Errorf("Failed to Check Whether the Image is Public Image : [%v]", err)
+				cblogger.Error(newErr.Error())
+				// return irs.VMInfo{}, newErr // Caution!!
+			}
+			if isPublicImage {
+				vmInfo.ImageType = irs.PublicImage
+			} else {
+				vmInfo.ImageType = irs.MyImage
+			}
 		} else {
-			vmInfo.ImageType = irs.MyImage
+			vmInfo.ImageType = irs.PublicImage
 		}
 	}
 
@@ -1632,13 +1634,9 @@ func (vmHandler *KTVpcVMHandler) listFirewallRule() ([]rules.FirewallRule, error
 			cblogger.Error(newErr.Error())
 			return false, newErr
 		}
-		if len(rules) < 1 {
-			newErr := fmt.Errorf("Failed to Find Any FirewallRule Info.")
-			cblogger.Debug("No FirewallRule found : %v", newErr)
-			return false, newErr
+		if len(rules) > 0 {
+			firewallRuleList = append(firewallRuleList, rules...)
 		}
-
-		firewallRuleList = rules
 		return true, nil
 	})
 	if err != nil {
