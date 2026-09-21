@@ -822,59 +822,61 @@ func StartVM(connectionName string, rsType string, reqInfo cres.VMReqInfo, IDTra
 	}
 
 	// Check Sync Called and Make sure cb-user prepared -----------------
-	// --- <step-1> Get PublicIP of new VM
-	var checkError struct {
-		Flag bool
-		MSG  string
-	}
-
-	assignPublicIP := reqInfo.AssignPublicIP == nil || *reqInfo.AssignPublicIP
-
-	waiter := NewWaiter(15, 600) // (sleep, timeout)
-	var publicIP string
-	for {
-		vmInfo, err := handler.GetVM(info.IId)
-		if err != nil {
-			cblog.Error(err)
-			if checkNotFoundError(err) { // VM is not created yet.
-				continue
-			}
-			callInfo.ErrorMSG = err.Error()
-			callogger.Info(call.String(callInfo))
-
-			//handler.TerminateVM(info.IId)
-
-			return nil, err
-		}
-		// When AssignPublicIP=false, the VM will never get a PublicIP, so
-		// don't wait for one - just confirm the VM is gettable and move on.
-		if !assignPublicIP || vmInfo.PublicIP != "" {
-			publicIP = vmInfo.PublicIP
-			break
+	if strings.EqualFold(os.Getenv("SPIDER_ENABLE_VM_ACCESS_CHECK"), "true") {
+		// --- <step-1> Get PublicIP of new VM
+		var checkError struct {
+			Flag bool
+			MSG  string
 		}
 
-		if !waiter.Wait() {
-			//handler.TerminateVM(info.IId)
-			checkError.Flag = true
-			checkError.MSG = fmt.Sprintf("[%s] Failed to Start VM %s when getting PublicIP. (Timeout=%v)", connectionName, reqIId.NameId, waiter.Timeout)
-			break
-		}
-	}
+		assignPublicIP := reqInfo.AssignPublicIP == nil || *reqInfo.AssignPublicIP
 
-	if !checkError.Flag && !isWindowsOS && providerName != "MOCK" && assignPublicIP {
-		// --- <step-2> Check SSHD Daemon of new VM
-		waiter2 := NewWaiter(2, 120) // (sleep, timeout)
-
+		waiter := NewWaiter(15, 600) // (sleep, timeout)
+		var publicIP string
 		for {
-			if checkSSH(publicIP + ":22") {
+			vmInfo, err := handler.GetVM(info.IId)
+			if err != nil {
+				cblog.Error(err)
+				if checkNotFoundError(err) { // VM is not created yet.
+					continue
+				}
+				callInfo.ErrorMSG = err.Error()
+				callogger.Info(call.String(callInfo))
+
+				//handler.TerminateVM(info.IId)
+
+				return nil, err
+			}
+			// When AssignPublicIP=false, the VM will never get a PublicIP, so
+			// don't wait for one - just confirm the VM is gettable and move on.
+			if !assignPublicIP || vmInfo.PublicIP != "" {
+				publicIP = vmInfo.PublicIP
 				break
 			}
 
-			if !waiter2.Wait() {
+			if !waiter.Wait() {
 				//handler.TerminateVM(info.IId)
 				checkError.Flag = true
-				checkError.MSG = fmt.Sprintf("[%s] Failed to Start VM %s when checking SSHD Daemon. (Timeout=%v)", connectionName, reqIId.NameId, waiter2.Timeout)
+				checkError.MSG = fmt.Sprintf("[%s] Failed to Start VM %s when getting PublicIP. (Timeout=%v)", connectionName, reqIId.NameId, waiter.Timeout)
 				break
+			}
+		}
+
+		if !checkError.Flag && !isWindowsOS && providerName != "MOCK" && assignPublicIP {
+			// --- <step-2> Check SSHD Daemon of new VM
+			waiter2 := NewWaiter(2, 120) // (sleep, timeout)
+
+			for {
+				if checkSSH(publicIP + ":22") {
+					break
+				}
+
+				if !waiter2.Wait() {
+					//handler.TerminateVM(info.IId)
+					checkError.Flag = true
+					checkError.MSG = fmt.Sprintf("[%s] Failed to Start VM %s when checking SSHD Daemon. (Timeout=%v)", connectionName, reqIId.NameId, waiter2.Timeout)
+					break
+				}
 			}
 		}
 	}
