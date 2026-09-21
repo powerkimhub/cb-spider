@@ -905,99 +905,101 @@ func StartVM(connectionName string, rsType string, reqInfo cres.VMReqInfo, IDTra
 		return nil, err
 	}
 
-	// Record successful VM creation in Recent table
-	elapsedSeconds := call.ElapsedSeconds(start)
-	go func() {
-		// Run in background to avoid blocking
-		// Fetch image and spec info for VM recent record
-		osArch := "-"
-		osPlatform := "-"
-		osDistribution := "-"
-		cpuInfo := "-"
-		gpuInfo := "-"
-		priceInfo := "-"
+	// Record successful VM creation in Recent table (only when AdminWeb is enabled)
+	if !strings.EqualFold(os.Getenv("ADMINWEB"), "OFF") {
+		elapsedSeconds := call.ElapsedSeconds(start)
+		go func() {
+			// Run in background to avoid blocking
+			// Fetch image and spec info for VM recent record
+			osArch := "-"
+			osPlatform := "-"
+			osDistribution := "-"
+			cpuInfo := "-"
+			gpuInfo := "-"
+			priceInfo := "-"
 
-		// Get Image Info
-		imageHandler, err := cldConn.CreateImageHandler()
-		if err == nil {
-			imageInfo, err := imageHandler.GetImage(reqInfoForDriver.ImageIID)
+			// Get Image Info
+			imageHandler, err := cldConn.CreateImageHandler()
 			if err == nil {
-				if imageInfo.OSArchitecture != "" && imageInfo.OSArchitecture != "NA" {
-					osArch = string(imageInfo.OSArchitecture)
-				}
-				if imageInfo.OSPlatform != "" && imageInfo.OSPlatform != "NA" {
-					osPlatform = string(imageInfo.OSPlatform)
-				}
-				if imageInfo.OSDistribution != "" && imageInfo.OSDistribution != "NA" {
-					osDistribution = imageInfo.OSDistribution
-				}
-			}
-		}
-
-		// Get Spec Info
-		specHandler, err := cldConn.CreateVMSpecHandler()
-		if err == nil {
-			specInfo, err := specHandler.GetVMSpec(reqInfoForDriver.VMSpecName)
-			if err == nil {
-				// Format CPU/Memory info
-				hasCPU := specInfo.VCpu.Count != "" && specInfo.VCpu.Count != "-1"
-				hasMemory := specInfo.MemSizeMiB != "" && specInfo.MemSizeMiB != "-1"
-
-				cpuValue := "-"
-				if hasCPU {
-					cpuValue = specInfo.VCpu.Count
-				}
-
-				memValue := "-"
-				if hasMemory {
-					memValue = specInfo.MemSizeMiB
-				}
-				cpuInfo = cpuValue + "/" + memValue + " MiB"
-
-				// Format GPU info
-				if len(specInfo.Gpu) > 0 {
-					hasGPU := specInfo.Gpu[0].Count != "" && specInfo.Gpu[0].Count != "-1"
-					hasGPUMem := specInfo.Gpu[0].MemSizeGB != "" && specInfo.Gpu[0].MemSizeGB != "-1"
-					hasGPUModel := specInfo.Gpu[0].Model != "" && specInfo.Gpu[0].Model != "NA" && specInfo.Gpu[0].Model != "-1"
-
-					if hasGPU || hasGPUMem {
-						gpuValue := "-"
-						if hasGPU {
-							gpuValue = specInfo.Gpu[0].Count
-						}
-						gpuMemValue := "-"
-						if hasGPUMem {
-							gpuMemValue = specInfo.Gpu[0].MemSizeGB
-						}
-						gpuInfo = gpuValue + "/" + gpuMemValue + " GB"
-					} else if hasGPUModel {
-						gpuInfo = specInfo.Gpu[0].Model
+				imageInfo, err := imageHandler.GetImage(reqInfoForDriver.ImageIID)
+				if err == nil {
+					if imageInfo.OSArchitecture != "" && imageInfo.OSArchitecture != "NA" {
+						osArch = string(imageInfo.OSArchitecture)
+					}
+					if imageInfo.OSPlatform != "" && imageInfo.OSPlatform != "NA" {
+						osPlatform = string(imageInfo.OSPlatform)
+					}
+					if imageInfo.OSDistribution != "" && imageInfo.OSDistribution != "NA" {
+						osDistribution = imageInfo.OSDistribution
 					}
 				}
 			}
-		}
 
-		// Get Price Info from MC-Insight API
-		priceInfo = fetchPriceFromMCInsight(providerName, regionName, zoneName, reqInfo.VMSpecName)
+			// Get Spec Info
+			specHandler, err := cldConn.CreateVMSpecHandler()
+			if err == nil {
+				specInfo, err := specHandler.GetVMSpec(reqInfoForDriver.VMSpecName)
+				if err == nil {
+					// Format CPU/Memory info
+					hasCPU := specInfo.VCpu.Count != "" && specInfo.VCpu.Count != "-1"
+					hasMemory := specInfo.MemSizeMiB != "" && specInfo.MemSizeMiB != "-1"
 
-		err = InsertOrUpdateVMRecent(
-			providerName,
-			regionName,
-			zoneName,
-			reqInfo.ImageIID.NameId,
-			reqInfo.VMSpecName,
-			elapsedSeconds,
-			osArch,
-			osPlatform,
-			osDistribution,
-			cpuInfo,
-			gpuInfo,
-			priceInfo,
-		)
-		if err != nil {
-			cblog.Error("Failed to record VM creation in Recent table: ", err)
-		}
-	}()
+					cpuValue := "-"
+					if hasCPU {
+						cpuValue = specInfo.VCpu.Count
+					}
+
+					memValue := "-"
+					if hasMemory {
+						memValue = specInfo.MemSizeMiB
+					}
+					cpuInfo = cpuValue + "/" + memValue + " MiB"
+
+					// Format GPU info
+					if len(specInfo.Gpu) > 0 {
+						hasGPU := specInfo.Gpu[0].Count != "" && specInfo.Gpu[0].Count != "-1"
+						hasGPUMem := specInfo.Gpu[0].MemSizeGB != "" && specInfo.Gpu[0].MemSizeGB != "-1"
+						hasGPUModel := specInfo.Gpu[0].Model != "" && specInfo.Gpu[0].Model != "NA" && specInfo.Gpu[0].Model != "-1"
+
+						if hasGPU || hasGPUMem {
+							gpuValue := "-"
+							if hasGPU {
+								gpuValue = specInfo.Gpu[0].Count
+							}
+							gpuMemValue := "-"
+							if hasGPUMem {
+								gpuMemValue = specInfo.Gpu[0].MemSizeGB
+							}
+							gpuInfo = gpuValue + "/" + gpuMemValue + " GB"
+						} else if hasGPUModel {
+							gpuInfo = specInfo.Gpu[0].Model
+						}
+					}
+				}
+			}
+
+			// Get Price Info from MC-Insight API
+			priceInfo = fetchPriceFromMCInsight(providerName, regionName, zoneName, reqInfo.VMSpecName)
+
+			err = InsertOrUpdateVMRecent(
+				providerName,
+				regionName,
+				zoneName,
+				reqInfo.ImageIID.NameId,
+				reqInfo.VMSpecName,
+				elapsedSeconds,
+				osArch,
+				osPlatform,
+				osDistribution,
+				cpuInfo,
+				gpuInfo,
+				priceInfo,
+			)
+			if err != nil {
+				cblog.Error("Failed to record VM creation in Recent table: ", err)
+			}
+		}()
+	}
 
 	/*
 		// set sg NameId from VPCNameId-SecurityGroupNameId
