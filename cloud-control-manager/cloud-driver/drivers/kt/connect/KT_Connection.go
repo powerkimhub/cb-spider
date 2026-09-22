@@ -69,7 +69,12 @@ func (cloudConn *KTCloudVpcConnection) CreateKeyPairHandler() (irs.KeyPairHandle
 
 func (cloudConn KTCloudVpcConnection) CreateSecurityHandler() (irs.SecurityHandler, error) {
 	cblogger.Info("KT Cloud VPC Driver: called CreateSecurityHandler()!")
-	securityHandler := ktvpcrs.KTVpcSecurityHandler{RegionInfo: cloudConn.RegionInfo, VMClient: cloudConn.VMClient, NetworkClient: cloudConn.NetworkClient}
+	securityHandler := ktvpcrs.KTVpcSecurityHandler{
+		RegionInfo:    cloudConn.RegionInfo,
+		VMClient:      cloudConn.VMClient,
+		NetworkClient: cloudConn.NetworkClient,
+		VolumeClient:  cloudConn.VolumeClient,
+	}
 	return &securityHandler, nil
 }
 
